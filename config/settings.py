@@ -24,9 +24,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-%$l&klsm95w)gix7&5#dne7f86_^q8d448n(76mb6qxnv%ir9*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Locally this defaults to True. On Render, we set DEBUG=False as an
+# environment variable, so this automatically switches over.
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = []
+# Render gives your app a domain like miabbie-backend.onrender.com — set
+# via the ALLOWED_HOSTS environment variable in Render's dashboard, so you
+# don't have to edit code to change it.
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -47,6 +52,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -121,16 +127,23 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 
 # Custom user model (email-based, no username field)
 AUTH_USER_MODEL = 'accounts.User'
 
-# Allow your React dev server to talk to this API directly (kept as a
-# fallback even though the Vite dev proxy usually handles this already)
+# Allow your React dev server AND your live GitHub Pages site to talk
+# to this API
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://chigozieallanie.github.io",
 ]
 
 REST_FRAMEWORK = {
