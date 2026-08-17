@@ -1,4 +1,3 @@
-from django.core.mail import send_mail
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -7,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User, VerificationCode
 from .serializers import SignupSerializer, VerifySerializer, LoginSerializer
+from .email_utils import send_verification_email
 
 
 class SignupView(APIView):
@@ -22,16 +22,10 @@ class SignupView(APIView):
         user = User.objects.create_user(email=email, phone=phone)
         code_obj = VerificationCode.generate_for(user)
 
-        # In development this just prints to your terminal (console email
-        # backend). Once you're ready to deploy, swap EMAIL_BACKEND in
-        # settings.py for a real SMTP provider and this same code will
-        # actually email the user.
-        send_mail(
-            subject='Your MiAbbie verification code',
-            message=f'Your verification code is: {code_obj.code}',
-            from_email=None,  # uses DEFAULT_FROM_EMAIL
-            recipient_list=[email],
-        )
+        # Sent via SendGrid's HTTPS API (not Django's SMTP backend) —
+        # this works both locally and on Render, since SMTP ports get
+        # blocked on Render's free tier but HTTPS never does.
+        send_verification_email(email, code_obj.code)
 
         return Response(
             {'message': 'Account created. Check your email for a verification code.'},
